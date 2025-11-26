@@ -1,0 +1,13 @@
+{
+  "name": "cru-parser-a24-student",
+  "version": "0.1.0",
+  "description": "CRU parser and small CLI for searching/testing .cru files",
+  "main": "caporalCli.js",
+  "scripts": {
+    "start": "node caporalCli.js"
+  },
+  "dependencies": {
+    "@caporal/core": "^3.0.2",
+    "colors": "^1.4.0"
+  }
+}
