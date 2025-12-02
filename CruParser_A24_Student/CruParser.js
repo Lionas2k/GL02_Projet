@@ -89,7 +89,7 @@ CruParser.prototype.processCruSection = function(sectionName, sessions){
 
 		// Use the prototype recursive-descent helpers on the token array
 		var args = this.body(tokens);
-		var crs = new CRS(sectionName, args.index, args.type, args.capacite, args.horaire, args.jour, args.heureDeb, args.heureFin, args.semaine, args.salle);
+		var crs = new CRS(sectionName, args.index, args.type, args.capacite, args.horaire.substring(2), args.jour, args.heureDeb, args.heureFin, args.semaine, args.salle);
 		crs.raw = session;
 		crs.section = sectionName;
 		this.parsedCru.push(crs);
