@@ -142,6 +142,7 @@ cli
                                     arrayCours.push(Cru.salle);
                                 }
                             })
+                            // if arrayCours.length===0, logger error else logger array
                             logger.info(arrayCours);
                             // je sais pas comment le parser marche donc je sais pas comment les cours sont récupérés 
                             // analyzer.parsedCru; ?
