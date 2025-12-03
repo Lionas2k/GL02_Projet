@@ -136,11 +136,19 @@ cli
                             }
                             var analyzer = new CruParser();
                             analyzer.parse(data);
+                            let arrayCours = [];
+                            analyzer.parsedCru.forEach(Cru => {
+                                if (Cru.cours === args.name) {
+                                    arrayCours.push(Cru.salle);
+                                }
+                            })
+                            logger.info(arrayCours);
                             // je sais pas comment le parser marche donc je sais pas comment les cours sont récupérés 
                             // analyzer.parsedCru; ?
                             // if(???===name){
                             // logger.info(salle)
                             //}
+                            // Faire la bonne gestion des cas d'erreur relatif au cahier des charges
                         });
                     })
                 }
