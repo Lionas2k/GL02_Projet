@@ -3,6 +3,8 @@ const colors = require('colors');
 const CruParser = require('./CruParser.js');
 const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
+const path = require('path');      
+
 
 cli
     .version('cru-parser-cli')
@@ -124,6 +126,128 @@ cli
                 logger.info('%s', JSON.stringify(preview, null, 2));
             }
         });
+    })
+  .command('maxcap', 'Check the maximum capacity of a room')
+  .argument('<room>', 'Room identifier')
+  .action(({ args, logger }) => {
+    const roomId = args.room;
+
+    // Check if identifier is empty
+    if (!roomId || roomId.trim() === '') {
+      return logger.error("The room identifier cannot be empty.");
+    }
+
+    const rootFolder = 'SujetA_data';
+    let allCourses = [];
+
+    // Read all subfolders
+    fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+      if (err) return logger.error(err);
+
+      files.forEach(dirent => {
+        if (dirent.isDirectory()) {
+          const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+          if (fs.existsSync(filePath)) {
+            const data = fs.readFileSync(filePath, 'utf8');
+            const parser = new CruParser();
+            parser.parse(data);
+
+            allCourses = allCourses.concat(parser.parsedCru);
+          }
+        }
+      });
+
+      // Filter the courses of the requested room
+      const roomCourses = allCourses.filter(c => c.salle === roomId);
+
+      if (roomCourses.length === 0) {
+        return logger.error("This room does not exist.");
+      }
+
+      // Get the maximum capacity
+      const maxCap = Math.max(...roomCourses.map(c => parseInt(c.capacite, 10)));
+      logger.info(`Maximum capacity of room ${roomId}: ${maxCap}`);
     });
+  })
+
+  .command('freeroom', 'Check available time slots for a room')
+  .argument('<room>', 'Room identifier')
+  .action(({ args, logger }) => {
+    const roomId = args.room;
+
+    // Check if identifier is empty
+    if (!roomId || roomId.trim() === '') {
+        return logger.error("The room identifier cannot be empty.");
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const CruParser = require('./CruParser.js');
+
+    const rootFolder = path.join(__dirname, "SujetA_data");
+
+    fs.readdir(rootFolder, { withFileTypes: true }, (err, entries) => {
+        if (err) return logger.error("Cannot read SujetA_data: " + err);
+
+        const allCourses = [];
+        let filesToRead = 0;
+
+        // Read all subfolders
+        entries.forEach(dirent => {
+            if (dirent.isDirectory()) {
+                const filePath = path.join(rootFolder, dirent.name, "edt.cru");
+                filesToRead++;
+
+                fs.readFile(filePath, 'utf8', (err, data) => {
+                    filesToRead--;
+
+                    if (!err) {
+                        const parser = new CruParser();
+                        parser.parse(data);
+                        allCourses.push(...(parser.parsedCru || []));
+                    }
+
+                    // When all files are processed
+                    if (filesToRead === 0) {
+
+                        // Filter courses for the requested room
+                        const roomCourses = allCourses.filter(c => c.salle === roomId);
+
+                        if (roomCourses.length === 0) {
+                            return logger.error("This room does not exist.");
+                        }
+
+                        // Occupied time slots by day
+                        const days = ["L", "MA", "ME", "J", "V"];
+                        const hours = Array.from({ length: 12 }, (_, i) => 8 + i); // 8h → 19h
+
+                        // Prepare structure: for each day, list all free hours
+                        const freeSlots = {};
+                        days.forEach(d => freeSlots[d] = [...hours]);
+
+                        // Remove occupied hours
+                        roomCourses.forEach(c => {
+                            const day = c.jour;
+                            if (!days.includes(day)) return;
+
+                            const [start, end] = c.horaire.split('-').map(h => parseInt(h, 10));
+
+                            for (let h = start; h < end; h++) {
+                                const index = freeSlots[day].indexOf(h);
+                                if (index !== -1) freeSlots[day].splice(index, 1);
+                            }
+                        });
+
+                        // Final output
+                        logger.info(`Available time slots for room ${roomId}:`);
+                        logger.info(JSON.stringify(freeSlots, null, 2));
+                    }
+                });
+            }
+        });
+    });
+})
+
 
 cli.run(process.argv.slice(2));
