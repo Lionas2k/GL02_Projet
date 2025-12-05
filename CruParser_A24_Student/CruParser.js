@@ -12,7 +12,6 @@ var CruParser = function(sTokenize, sParsedSymb){
 // Parser procedure
 
 // tokenize : tranform the data input into a list
-// <eol> = CRLF
 CruParser.prototype.tokenize = function(data){
 	var separator = /(\r\n|: )/;
 	data = data.split(separator);
@@ -90,7 +89,7 @@ CruParser.prototype.processCruSection = function(sectionName, sessions){
 
 		// Use the prototype recursive-descent helpers on the token array
 		var args = this.body(tokens);
-		var crs = new CRS(args.index, args.type, args.capacite, args.horaire, args.jour, args.heureDeb, args.heureFin, args.semaine, args.salle);
+		var crs = new CRS(sectionName, args.index, args.type, args.capacite, args.horaire.substring(2), args.jour, args.heureDeb, args.heureFin, args.semaine, args.salle);
 		crs.raw = session;
 		crs.section = sectionName;
 		this.parsedCru.push(crs);
@@ -181,7 +180,7 @@ CruParser.prototype.body = function(input){
 	var heureFin = horaireObj ? horaireObj.heureFin : null;
 	var semaine = this.semaine(input);
 	var salle = this.salle(input);
-	return { index : index, type : type, capacite : capacite, horaire : horaire, jour : jour, heureDeb : heureDeb, heureFin : heureFin, semaine : semaine, salle : salle };
+	return {index : index, type : type, capacite : capacite, horaire : horaire, jour : jour, heureDeb : heureDeb, heureFin : heureFin, semaine : semaine, salle : salle };
 }
 
 // <Index> = 1*DIGIT

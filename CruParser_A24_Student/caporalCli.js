@@ -1,6 +1,7 @@
 const fs = require('fs');
 const colors = require('colors');
 const CruParser = require('./CruParser.js');
+const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
 
 cli
@@ -62,14 +63,21 @@ cli
             if (searchNeedle && searchNeedle != null) {
                 console.log("Searching for needle: " + searchNeedle);
                 var needle = searchNeedle.toLowerCase();
+<<<<<<< HEAD
                 var matches = parsed.filter(function (c) {
                     var searcBy = (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index || '') + ' ' + (c.type || '') + ' ' + (c.capacite || '') + ' ' + (c.horaire || '') + ' ' + (c.jour || '') + ' ' + (c.semaine || '') + ' ' + (c.salle || '');
                     return searcBy.toLowerCase().includes(needle);
+=======
+                var matches = parsed.filter(function(c){
+                    var searchBy = (c.cours || '') + ' ' + (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index||'') + ' ' + (c.type||'') + ' ' + (c.capacite||'') + ' ' + (c.horaire||'') + ' ' + (c.jour||'') + ' ' + (c.semaine||'') + ' ' + (c.salle||'');
+                    return searchBy.toLowerCase().includes(needle);
+>>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
                 });
                 if (matches.length === 0) {
                     logger.info('No matches found for needle: ' + searchNeedle);
                 } else {
                     logger.info('Found ' + matches.length + ' matching lines:');
+<<<<<<< HEAD
                     var lines = matches.map(function (m) { return m.raw; });
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
@@ -81,16 +89,52 @@ cli
                     return searcBy.toLowerCase().includes(dayNeedle);
                 });
                 if (matches.length === 0) {
+=======
+                    var lines = matches.map(function(x){ return {
+                        cours: x.cours,
+                        index: x.index, 
+                        type: x.type, 
+                        capacite: x.capacite,
+                        horaire: x.horaire,
+                        jour: x.jour,
+                        semaine: x.semaine,
+                        salle: x.salle
+                    } });
+                    logger.info('%s', JSON.stringify(lines, null, 2));
+                }
+            } else if(searchDay && searchDay != null){
+                console.log("Filtering by day: "+searchDay);
+                    var dayNeedle = searchDay.toLowerCase();
+                    var matches = parsed.filter(function(c){
+                        var searchBy = (c.jour || '');
+                        return searchBy.toLowerCase().includes(dayNeedle);
+                    });
+                if(matches.length === 0){
+>>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
                     logger.info('No matches found for day: ' + searchDay);
                 } else {
                     logger.info('Found ' + matches.length + ' matching lines for day ' + searchDay + ':');
+<<<<<<< HEAD
                     var lines = matches.map(function (m) { return m.raw; });
+=======
+                    var lines = matches.map(function(x){ return {
+                        cours: x.cours, 
+                        index: x.index, 
+                        type: x.type, 
+                        capacite: x.capacite, 
+                        horaire: x.horaire, 
+                        jour: x.jour, 
+                        semaine: x.semaine, 
+                        salle: x.salle
+                    } });
+>>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
             } else {
                 console.log("No needle provided, showing preview of parsed entries");
                 var preview = parsed.slice(0, N).map(function (x) {
                     return {
+                        cours: x.cours,
                         index: x.index,
                         type: x.type,
                         capacite: x.capacite,

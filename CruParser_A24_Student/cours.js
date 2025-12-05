@@ -1,4 +1,5 @@
-var cours = function(index, type, capacite, horaire, jour, heureDeb, heureFin, semaine, salle){
+var cours = function(cours, index, type, capacite, horaire, jour, heureDeb, heureFin, semaine, salle){
+    this.cours = cours;
 	this.index = index;
 	this.type = type;
 	this.capacite = capacite;
