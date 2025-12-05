@@ -3,6 +3,7 @@ const colors = require('colors');
 const CruParser = require('./CruParser.js');
 const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
+const path = require('path');
 
 cli
     .version('cru-parser-cli')
@@ -63,71 +64,51 @@ cli
             if (searchNeedle && searchNeedle != null) {
                 console.log("Searching for needle: " + searchNeedle);
                 var needle = searchNeedle.toLowerCase();
-<<<<<<< HEAD
                 var matches = parsed.filter(function (c) {
-                    var searcBy = (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index || '') + ' ' + (c.type || '') + ' ' + (c.capacite || '') + ' ' + (c.horaire || '') + ' ' + (c.jour || '') + ' ' + (c.semaine || '') + ' ' + (c.salle || '');
-                    return searcBy.toLowerCase().includes(needle);
-=======
-                var matches = parsed.filter(function(c){
-                    var searchBy = (c.cours || '') + ' ' + (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index||'') + ' ' + (c.type||'') + ' ' + (c.capacite||'') + ' ' + (c.horaire||'') + ' ' + (c.jour||'') + ' ' + (c.semaine||'') + ' ' + (c.salle||'');
+                    var searchBy = (c.cours || '') + ' ' + (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index || '') + ' ' + (c.type || '') + ' ' + (c.capacite || '') + ' ' + (c.horaire || '') + ' ' + (c.jour || '') + ' ' + (c.semaine || '') + ' ' + (c.salle || '');
                     return searchBy.toLowerCase().includes(needle);
->>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
                 });
                 if (matches.length === 0) {
                     logger.info('No matches found for needle: ' + searchNeedle);
                 } else {
                     logger.info('Found ' + matches.length + ' matching lines:');
-<<<<<<< HEAD
-                    var lines = matches.map(function (m) { return m.raw; });
+                    var lines = matches.map(function (x) {
+                        return {
+                            cours: x.cours,
+                            index: x.index,
+                            type: x.type,
+                            capacite: x.capacite,
+                            horaire: x.horaire,
+                            jour: x.jour,
+                            semaine: x.semaine,
+                            salle: x.salle
+                        }
+                    });
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
             } else if (searchDay && searchDay != null) {
                 console.log("Filtering by day: " + searchDay);
                 var dayNeedle = searchDay.toLowerCase();
                 var matches = parsed.filter(function (c) {
-                    var searcBy = (c.jour || '');
-                    return searcBy.toLowerCase().includes(dayNeedle);
+                    var searchBy = (c.jour || '');
+                    return searchBy.toLowerCase().includes(dayNeedle);
                 });
                 if (matches.length === 0) {
-=======
-                    var lines = matches.map(function(x){ return {
-                        cours: x.cours,
-                        index: x.index, 
-                        type: x.type, 
-                        capacite: x.capacite,
-                        horaire: x.horaire,
-                        jour: x.jour,
-                        semaine: x.semaine,
-                        salle: x.salle
-                    } });
-                    logger.info('%s', JSON.stringify(lines, null, 2));
-                }
-            } else if(searchDay && searchDay != null){
-                console.log("Filtering by day: "+searchDay);
-                    var dayNeedle = searchDay.toLowerCase();
-                    var matches = parsed.filter(function(c){
-                        var searchBy = (c.jour || '');
-                        return searchBy.toLowerCase().includes(dayNeedle);
-                    });
-                if(matches.length === 0){
->>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
                     logger.info('No matches found for day: ' + searchDay);
                 } else {
                     logger.info('Found ' + matches.length + ' matching lines for day ' + searchDay + ':');
-<<<<<<< HEAD
-                    var lines = matches.map(function (m) { return m.raw; });
-=======
-                    var lines = matches.map(function(x){ return {
-                        cours: x.cours, 
-                        index: x.index, 
-                        type: x.type, 
-                        capacite: x.capacite, 
-                        horaire: x.horaire, 
-                        jour: x.jour, 
-                        semaine: x.semaine, 
-                        salle: x.salle
-                    } });
->>>>>>> 6e3286daa207c92dad519af87b8a75613995e935
+                    var lines = matches.map(function (x) {
+                        return {
+                            cours: x.cours,
+                            index: x.index,
+                            type: x.type,
+                            capacite: x.capacite,
+                            horaire: x.horaire,
+                            jour: x.jour,
+                            semaine: x.semaine,
+                            salle: x.salle
+                        }
+                    });
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
             } else {
@@ -151,56 +132,77 @@ cli
     })
 
     .command('salleCours', 'Output the classrooms associated to the class associated with <name>')
-    // Need the parser to be able to retrieve classes names
-    .argument('<name>', 'The name of the class (cf. cours.js)')
+    .argument('<name>', 'The name of the class')
+    // Only one arg, if 0 or 2+ will print an error automatically
     .action(({ args, logger }) => {
-        logger.info("The classrooms in which class " + args.name + " is present are the following :");
-        // How to make it work?
-        // Read all the cru files in all directories
-        // Check if parsed courses' names equals the argument specified by the user when calling salleCours
-        // If it's the same name, log the classroom associated
-        // Prob do it all with loops like ForEach?
-        let data_dir = "../SujetA_data";
-        // Hypothesis for what's coming next : added cru files are well organised in the following sub-directories, and no class begins with UV WX YZ? can be easily implemented though
-        // ie. Classes with names starting with A or B are in the cru files located in the sub-directory "AB", albeit non-obligatory for the code to actually work. In fact we only need cru files to be in the sub-directories.
-        // This system can also manage having multiple cru files in the sub-directory, to let users add cru files instead of rewriting existing files
-        let alpha_dir = ["AB", "CD", "EF", "GH", "IJ", "KL", "MN", "OP", "QR", "ST"]
-        alpha_dir.forEach(function (alpha) {
-            let sub_dir = data_dir + alpha_dir;
-            fs.readdir(sub_dir, (err, files) => {
-                if (err)
-                    console.log(err);
-                else {
-                    //console.log("\nCurrent directory filenames:");
-                    files.forEach(file => {
-                        //console.log(file);
-                        fs.readFile(file, 'utf8', function (err, data) {
-                            if (err) {
-                                return logger.warn(err);
-                            }
-                            var analyzer = new CruParser();
-                            analyzer.parse(data);
-                            let arrayCours = [];
-                            analyzer.parsedCru.forEach(Cru => {
-                                if (Cru.cours === args.name) {
-                                    arrayCours.push(Cru.salle);
-                                }
-                            })
-                            // if arrayCours.length===0, logger error else logger array
-                            logger.info(arrayCours);
-                            // je sais pas comment le parser marche donc je sais pas comment les cours sont récupérés 
-                            // analyzer.parsedCru; ?
-                            // if(???===name){
-                            // logger.info(salle)
-                            //}
-                            // Faire la bonne gestion des cas d'erreur relatif au cahier des charges
+        // Path is important here, check if you've got the data at the right place and that you're placed in the CruParser_A24_Student folder. If you're placed in the overall project folder, you should probably change the following string with "CruParser_A24_Student/SujetA_data"
+        const data_dir = "SujetA_data";
+        let arraySalleCours = [];
+
+        try {
+            // Reads the data directory
+            const elements = fs.readdirSync(data_dir, { withFileTypes: true });
+
+            elements.forEach(element => {
+                // If it's a file, will just read the file
+                if (element.isFile()) {
+                    const filepath = path.join(data_dir, element.name);
+                    try {
+                        const data = fs.readFileSync(filepath, 'utf8');
+                        // Parses the sub file
+                        const analyzer = new CruParser();
+                        analyzer.parse(data);
+                        // Checks if the name is the same as what the user has chosen
+                        analyzer.parsedCru.forEach(Cru => {
+                            // Adds it to array
+                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
                         });
-                    })
+                    } catch (err) {
+                        logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                    }
                 }
-            })
+                // If encounters a sub directory, will read the files inside them
+                else if (element.isDirectory()) {
+                    const sub_dir = path.join(data_dir, element.name);
+                    try {
+                        const sub_files = fs.readdirSync(sub_dir, { withFileTypes: true });
+                        // Reads the files in the sub folder
+                        sub_files.forEach(file => {
+                            if (file.isFile()) {
+                                const filepath = path.join(sub_dir, file.name);
+                                try {
+                                    const data = fs.readFileSync(filepath, 'utf8');
+                                    // Parses the sub file
+                                    const analyzer = new CruParser();
+                                    analyzer.parse(data);
+                                    // Checks if the name is the same as what the user has chosen
+                                    analyzer.parsedCru.forEach(Cru => {
+                                        // Adds it to array
+                                        if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                    });
+                                } catch (err) {
+                                    logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        logger.warn(`Impossible de lire le sous-dossier ${sub_dir} : ${err.message}`);
+                    }
+                }
+            });
+            // A set can't have duplicates (useful maths!), but can't be printed as easily as an array, so we need an array back
+            arraySalleCours = [...new Set(arraySalleCours)];
 
-        })
+            if (arraySalleCours.length === 0) {
+                logger.error("Aucune correspondance trouvée.");
+            } else {
+                logger.info("Voici la liste des salles associées au cours " + args.name + ":\n" + arraySalleCours);
+            }
 
-    })
+        } catch (err) {
+            logger.error(`Impossible de lire le dossier ${data_dir} : ${err.message}`);
+        }
+
+    });
 
 cli.run(process.argv.slice(2));
