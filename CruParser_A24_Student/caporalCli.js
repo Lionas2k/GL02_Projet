@@ -190,7 +190,7 @@ cli
                     }
                 }
             });
-            // A set can't have duplicates (useful maths!), but can't be printed as easily as an array, so we need an array back
+            // A set can't have duplicates (useful math!), but can't be printed as easily as an array, so we need to cast it back as an array
             arraySalleCours = [...new Set(arraySalleCours)];
 
             if (arraySalleCours.length === 0) {
