@@ -248,6 +248,156 @@ cli
         });
     });
 })
+    .command('ical', 'Generate an iCalendar file for specified courses')
+    .argument('<start>', 'Start date (YYYY-MM-DD)')
+    .argument('<end>', 'End date (YYYY-MM-DD)')
+    .argument('<courses...>', 'Course codes (e.g., SY02 MT09)')
+    .option('-o, --output <filename>', 'Output filename', { validator: cli.STRING, default: 'calendar.ics' })
+    .action(({ args, options, logger }) => {
+        const startDate = new Date(args.start);
+        const endDate = new Date(args.end);
+        const courses = args.courses;
+        const outputFile = options.output;
 
+        // Verifie le format de dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return logger.error("Le format de date n'est pas valide. Utilisez ce format : YYYY-MM-DD");
+        }
+
+        if (startDate > endDate) {
+            return logger.error("La date de début doit être avant la date de fin");
+        }
+
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Lis tous les sous-dossiers
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            let filesToRead = 0;
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        filesToRead++;
+                        fs.readFile(filePath, 'utf8', (err, data) => {
+                            filesToRead--;
+
+                            if (!err) {
+                                const parser = new CruParser();
+                                parser.parse(data);
+                                allCourses = allCourses.concat(parser.parsedCru);
+                            }
+
+                            // Après avoir recuperé tous les cours
+                            if (filesToRead === 0) {
+                                generateICalendar(allCourses, courses, startDate, endDate, outputFile, logger);
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (filesToRead === 0) {
+                return logger.error("No .cru files found");
+            }
+        });
+    })
+
+function generateICalendar(allCourses, requestedCourses, startDate, endDate, outputFile, logger) {
+    // Filter courses matching requested course codes
+    const filteredCourses = allCourses.filter(c =>
+        requestedCourses.some(rc => c.cours === rc || c.section === rc)
+    );
+
+    if (filteredCourses.length === 0) {
+        return logger.error("Aucun cours correspondant : " + requestedCourses.join(', '));
+    }
+
+    const dayMap = {
+        'L': 1,   // Lundi
+        'MA': 2,  // Mardi
+        'ME': 3,  // Mercredi
+        'J': 4,   // Jeudi
+        'V': 5,   // Vendredi
+        'S': 6,   // Samedi
+        'D': 0    // Dimanche
+    };
+
+    // Genère la base du fichier Icalendar
+    let icalContent = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//CRU Parser//Calendar//EN',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH'
+    ];
+
+    // Ajoute les evenements pour chaque cours
+    filteredCourses.forEach(course => {
+        if (!course.jour || !course.heureDeb || !course.heureFin) return;
+
+        const targetDay = dayMap[course.jour];
+        if (targetDay === undefined) return;
+
+        let currentDate = new Date(startDate);
+
+        while (currentDate <= endDate) {
+            if (currentDate.getDay() === targetDay) {
+                const [startHour, startMin] = course.heureDeb.split(':').map(Number);
+                const [endHour, endMin] = course.heureFin.split(':').map(Number);
+
+                const eventStart = new Date(currentDate);
+                eventStart.setHours(startHour, startMin, 0);
+
+                const eventEnd = new Date(currentDate);
+                eventEnd.setHours(endHour, endMin, 0);
+
+                // formate les dates pour le ical (YYYYMMDDTHHMMSS)
+                const formatDate = (date) => {
+                    return date.getFullYear() +
+                        String(date.getMonth() + 1).padStart(2, '0') +
+                        String(date.getDate()).padStart(2, '0') +
+                        'T' +
+                        String(date.getHours()).padStart(2, '0') +
+                        String(date.getMinutes()).padStart(2, '0') +
+                        String(date.getSeconds()).padStart(2, '0');
+                };
+
+                // creer les evenements
+                const uid = `${course.cours}-${course.index}-${formatDate(eventStart)}@cruparser`;
+                const summary = `${course.cours} - ${course.type}`;
+                const description = `Cours: ${course.cours}\\nType: ${course.type}\\nCapacité: ${course.capacite}\\nHoraire: ${course.heureDeb.replace(':', 'h')} - ${course.heureFin.replace(':', 'h')}\\nSemaine: ${course.semaine || 'N/A'}`;
+                const location = course.salle || 'Non spécifié';
+
+                icalContent.push('BEGIN:VEVENT');
+                icalContent.push(`UID:${uid}`);
+                icalContent.push(`DTSTAMP:${formatDate(new Date())}`);
+                icalContent.push(`DTSTART:${formatDate(eventStart)}`);
+                icalContent.push(`DTEND:${formatDate(eventEnd)}`);
+                icalContent.push(`SUMMARY:${summary}`);
+                icalContent.push(`DESCRIPTION:${description}`);
+                icalContent.push(`LOCATION:${location}`);
+                icalContent.push('STATUS:CONFIRMED');
+                icalContent.push('END:VEVENT');
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+    });
+
+    icalContent.push('END:VCALENDAR');
+
+    // remplie le fichier
+    fs.writeFile(outputFile, icalContent.join('\r\n'), 'utf8', (err) => {
+        if (err) {
+            return logger.error("Error writing file: " + err);
+        }
+        logger.info(`iCalendar file generated successfully: ${outputFile}`.green);
+        logger.info(`Generated ${filteredCourses.length} course entries for ${requestedCourses.join(', ')}`);
+    });
+}
 
 cli.run(process.argv.slice(2));
