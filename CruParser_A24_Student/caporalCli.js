@@ -257,28 +257,160 @@ cli
     .command('tauxSalles', 'Gives a graphical representation of classroom occupation rate in a time frame')
     // The specifications declare input as 'BeginningDate' and 'EndingDate', and since our data are .cru files, the following arguments are the ones described by the ABNF of the aforementioned files
     .argument('<firstDay>', 'Starting day of the time period : "L", "MA", "ME", "J", "V"')
-    .argument('<firstHour>', 'Starting hour of the time period : 2DIGIT ":" 2DIGIT')
+    .argument('<firstHour>', 'Starting hour of the time period, from 8:00 to 19:00 : examples -> 8:00, 10:30')
     .argument('<firstWeek>', 'Starting week of the time period : "F0" to "F9"')
     .argument('<lastDay>', 'Ending day of the time period : "L", "MA", "ME", "J", "V"')
-    .argument('<lastHour>', 'Ending hour of the time period : 2DIGIT ":" 2DIGIT')
+    .argument('<lastHour>', 'Ending hour of the time period, from 9:00 to 20:00 : examples -> 9:30, 20:00')
     .argument('<lastWeek>', 'Ending week of the time period : "F0" to "F9"')
     .action(({ args, logger }) => {
+
         const arrDays = ["L", "MA", "ME", "J", "V"];
         // Checks if days are properly written, else informs the user of an error
         if ((!arrDays.includes(args.firstDay)) || (!arrDays.includes(args.lastDay))) {
             logger.error("Période invalide (Jours)");
         }
         // Checks if hours are properly written, else informs the user of an error
-        const ruleHours = /^([01]\d|2[0-3]):[0-5]\d$/;
+        const ruleHours = /^((0?8|0?9|1\d):[0-5]\d|20:00)$/;
         if ((!ruleHours.test(args.firstHour)) || (!ruleHours.test(args.lastHour))) {
             logger.error("Période invalide (Heures)");
         }
         // Checks if weeks are properly written, else informs the user of an error
         // The specifications of .cru files indicate weeks having only 1DIGIT, thus not going through the whole year?
         const ruleWeeks = /^F\d$/;
-        if ((!ruleHours.test(args.firstWeek)) || (!ruleHours.test(args.lastWeek))) {
+        if ((!ruleWeeks.test(args.firstWeek)) || (!ruleWeeks.test(args.lastWeek))) {
             logger.error("Période invalide (Semaine)");
         }
+
+        // Very useful to compare dates by using total time passed from F0 8:00
+        // Need of parseInt, since values are considered as strings initially
+        // Remember that a school day is from 8:00 to 20:00, hence 12 hours per day max, for 5 days
+
+        // Example of call: convertHoursToReference(parseInt(args.lastWeek.substring(1)), arrDays.indexOf(args.lastDay), parseInt(args.lastHour.split(":")[0]), parseInt(args.lastHour.split(":")[1]))
+        // Following function takes in the NUMBER values associated with each concept
+        // VERY IMPORTANT, CruParser gives cours.semaine as numbers directly
+        // could be done better sorry
+        function convertHoursToReference(week, day, hours, minutes) {
+            return week * 5 * 12 + day * 12 + hours + minutes / 60;
+        }
+
+        // Calculation of the total hours in the timeframe
+        const hoursLastDayToReference = convertHoursToReference(parseInt(args.lastWeek.substring(1)), arrDays.indexOf(args.lastDay), parseInt(args.lastHour.split(":")[0]), parseInt(args.lastHour.split(":")[1]));
+        const hoursFirstDayToReference = convertHoursToReference(parseInt(args.firstWeek.substring(1)), arrDays.indexOf(args.firstDay), parseInt(args.firstHour.split(":")[0]), parseInt(args.firstHour.split(":")[1]));
+
+        const hoursTotal = hoursLastDayToReference - hoursFirstDayToReference;
+        // Checks if time period is logical, relative to the starting and ending input
+        if (hoursTotal <= 0) {
+            logger.error("Période invalide (Date de début>=Date de fin)")
+        }
+
+        // Path is important here, check if you've got the data at the right place and that you're placed in the CruParser_A24_Student folder. If you're placed in the overall project folder, you should probably change the following string with "CruParser_A24_Student/SujetA_data"
+        const data_dir = "SujetA_data";
+        let arrayCours = [];
+
+        try {
+            // Reads the data directory
+            const elements = fs.readdirSync(data_dir, { withFileTypes: true });
+
+            elements.forEach(element => {
+                // If it's a file, will just read the file
+                if (element.isFile()) {
+                    const filepath = path.join(data_dir, element.name);
+                    try {
+                        const data = fs.readFileSync(filepath, 'utf8');
+                        // Parses the sub file
+                        const analyzer = new CruParser();
+                        analyzer.parse(data);
+                        // Filters the classes happening outside the timeframe
+                        analyzer.parsedCru.forEach(Cru => {
+                            const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
+
+                            const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+
+                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                // Appends classes in the array of selected classes
+                                arrayCours.push(Cru);
+                            }
+                        })
+
+                    } catch (err) {
+                        logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                    }
+                }
+                // If encounters a sub directory, will read the files inside them
+                else if (element.isDirectory()) {
+                    const sub_dir = path.join(data_dir, element.name);
+                    try {
+                        const sub_files = fs.readdirSync(sub_dir, { withFileTypes: true });
+                        // Reads the files in the sub folder
+                        sub_files.forEach(file => {
+                            if (file.isFile()) {
+                                const filepath = path.join(sub_dir, file.name);
+                                try {
+                                    const data = fs.readFileSync(filepath, 'utf8');
+                                    // Parses the sub file
+                                    const analyzer = new CruParser();
+                                    analyzer.parse(data);
+                                    // Filters the classes happening outside the timeframe
+
+                                    analyzer.parsedCru.forEach(Cru => {
+                                        const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
+
+                                        const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+
+                                        if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                            // Appends classes in the array of selected classes
+                                            arrayCours.push(Cru);
+                                        }
+                                    })
+
+                                } catch (err) {
+                                    logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        logger.warn(`Impossible de lire le sous-dossier ${sub_dir} : ${err.message}`);
+                    }
+                }
+            });
+
+        } catch (err) {
+            logger.error(`Impossible de lire le dossier ${data_dir} : ${err.message}`);
+        }
+        // Groups cours objects by classroom
+        let arrayGroupBySalle = [];
+
+        arrayCours.forEach(cours => {
+            // Looks for matching group
+            let group = arrayGroupBySalle.find(g => g[0].salle === cours.salle);
+
+            if (group) {
+                group.push(cours); // If exists, push into group
+            } else {
+                arrayGroupBySalle.push([cours]); // Else, create a new group with the class
+            }
+        });
+
+        // Calculates duration of classroom being used in hours and compares it to total hours possible within the time period
+        // Hypothesis of classes not overlapping very important here
+        let json_tauxSalles = {};
+        arrayGroupBySalle.forEach(group => {
+            let hoursUsed = 0;
+            group.forEach(cours => {
+                // Convert all in minutes, then back in hours
+                const hourClassStart = convertHoursToReference(parseInt(cours.semaine), arrDays.indexOf(cours.jour), parseInt(cours.heureDeb.split(":")[0]), parseInt(cours.heureDeb.split(":")[1]));
+                const hourClassEnd = convertHoursToReference(parseInt(cours.semaine), arrDays.indexOf(cours.jour), parseInt(cours.heureFin.split(":")[0]), parseInt(cours.heureFin.split(":")[1]));
+                const classDuration = hourClassEnd - hourClassStart;
+                hoursUsed += classDuration;
+            })
+            // The most important value that we want to express
+            const rate = hoursUsed / hoursTotal;
+            // Extract it into json, ie. associating room with rate
+            const salleName = group[0].salle;
+            json_tauxSalles[salleName] = rate;
+        })
+        //VEGALITE TO DO
+        console.log(JSON.stringify(json_tauxSalles, null, 2));
 
     })
 
