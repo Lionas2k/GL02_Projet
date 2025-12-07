@@ -7,7 +7,7 @@
     "start": "node caporalCli.js"
   },
   "dependencies": {
-    "@caporal/core": "^3.0.2",
+    "@caporal/core": "^3.1.5",
     "colors": "^1.4.0"
   }
 }

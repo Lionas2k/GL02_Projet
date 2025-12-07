@@ -3,20 +3,20 @@ const colors = require('colors');
 const CruParser = require('./CruParser.js');
 const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
-const path = require('path');      
+const path = require('path');
 
 
 cli
     .version('cru-parser-cli')
     .version('0.1')
-    
+
     .command('check', 'Check if <file> is a valid Cru file')
     .argument('<file>', 'The file to check with Cru parser')
-    .option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator : cli.BOOLEAN, default: false })
+    .option('-s, --showSymbols', 'log the analyzed symbol at each step', { validator: cli.BOOLEAN, default: false })
     .option('-t, --showTokenize', 'log thenode  tokenization results', { validator: cli.BOOLEAN, default: false })
-    .action(({args, options, logger}) => {
+    .action(({ args, options, logger }) => {
 
-        fs.readFile(args.file, 'utf8', function (err,data) {
+        fs.readFile(args.file, 'utf8', function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -24,12 +24,12 @@ cli
             var analyzer = new CruParser(options.showTokenize, options.showSymbols);
             analyzer.parse(data);
 
-            if(analyzer.errorCount === 0){
+            if (analyzer.errorCount === 0) {
                 logger.info("The .cru file is a valid cru file".green);
                 // Check how many entries were parsed
                 var parsed = analyzer.parsedCru || [];
                 logger.info('Parsed entries: ' + parsed.length);
-            }else{
+            } else {
                 logger.info("The .cru file contains error".red);
             }
 
@@ -41,10 +41,10 @@ cli
 
     .command('search', 'search for entries in a CRU file')
     .argument('<file>', 'The CRU file to test')
-    .option('-n, --needle <needle>', 'Search a needle in parsed lines', {validator : cli.STRING})
-    .option('-d, --day <day>', 'Filter by day (L, MA, ME, J, V)', {validator : cli.STRING})
-    .action(({args, options, logger}) => {
-        fs.readFile(args.file, 'utf8', function (err,data) {
+    .option('-n, --needle <needle>', 'Search a needle in parsed lines', { validator: cli.STRING })
+    .option('-d, --day <day>', 'Filter by day (L, MA, ME, J, V)', { validator: cli.STRING })
+    .action(({ args, options, logger }) => {
+        fs.readFile(args.file, 'utf8', function (err, data) {
             if (err) {
                 return logger.warn(err);
             }
@@ -57,60 +57,64 @@ cli
             var analyzer = new CruParser();
             analyzer.parse(data);
             var parsed = analyzer.parsedCru || [];
-            
+
 
 
             var N = Math.min(10, parsed.length);
             // If a needle is provided, filter by it and print matching raw lines
-            if(searchNeedle && searchNeedle != null){
-                console.log("Searching for needle: "+searchNeedle);
+            if (searchNeedle && searchNeedle != null) {
+                console.log("Searching for needle: " + searchNeedle);
                 var needle = searchNeedle.toLowerCase();
-                var matches = parsed.filter(function(c){
-                    var searchBy = (c.cours || '') + ' ' + (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index||'') + ' ' + (c.type||'') + ' ' + (c.capacite||'') + ' ' + (c.horaire||'') + ' ' + (c.jour||'') + ' ' + (c.semaine||'') + ' ' + (c.salle||'');
+                var matches = parsed.filter(function (c) {
+                    var searchBy = (c.cours || '') + ' ' + (c.raw || '') + ' ' + (c.section || '') + ' ' + (c.index || '') + ' ' + (c.type || '') + ' ' + (c.capacite || '') + ' ' + (c.horaire || '') + ' ' + (c.jour || '') + ' ' + (c.semaine || '') + ' ' + (c.salle || '');
                     return searchBy.toLowerCase().includes(needle);
                 });
-                if(matches.length === 0){
+                if (matches.length === 0) {
                     logger.info('No matches found for needle: ' + searchNeedle);
-                }else{
+                } else {
                     logger.info('Found ' + matches.length + ' matching lines:');
-                    var lines = matches.map(function(x){ return {
-                        cours: x.cours,
-                        index: x.index, 
-                        type: x.type, 
-                        capacite: x.capacite,
-                        horaire: x.horaire,
-                        jour: x.jour,
-                        semaine: x.semaine,
-                        salle: x.salle
-                    } });
+                    var lines = matches.map(function (x) {
+                        return {
+                            cours: x.cours,
+                            index: x.index,
+                            type: x.type,
+                            capacite: x.capacite,
+                            horaire: x.horaire,
+                            jour: x.jour,
+                            semaine: x.semaine,
+                            salle: x.salle
+                        }
+                    });
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
-            } else if(searchDay && searchDay != null){
-                console.log("Filtering by day: "+searchDay);
-                    var dayNeedle = searchDay.toLowerCase();
-                    var matches = parsed.filter(function(c){
-                        var searchBy = (c.jour || '');
-                        return searchBy.toLowerCase().includes(dayNeedle);
-                    });
-                if(matches.length === 0){
+            } else if (searchDay && searchDay != null) {
+                console.log("Filtering by day: " + searchDay);
+                var dayNeedle = searchDay.toLowerCase();
+                var matches = parsed.filter(function (c) {
+                    var searchBy = (c.jour || '');
+                    return searchBy.toLowerCase().includes(dayNeedle);
+                });
+                if (matches.length === 0) {
                     logger.info('No matches found for day: ' + searchDay);
-                }else{
+                } else {
                     logger.info('Found ' + matches.length + ' matching lines for day ' + searchDay + ':');
-                    var lines = matches.map(function(x){ return {
-                        cours: x.cours, 
-                        index: x.index, 
-                        type: x.type, 
-                        capacite: x.capacite, 
-                        horaire: x.horaire, 
-                        jour: x.jour, 
-                        semaine: x.semaine, 
-                        salle: x.salle
-                    } });
+                    var lines = matches.map(function (x) {
+                        return {
+                            cours: x.cours,
+                            index: x.index,
+                            type: x.type,
+                            capacite: x.capacite,
+                            horaire: x.horaire,
+                            jour: x.jour,
+                            semaine: x.semaine,
+                            salle: x.salle
+                        }
+                    });
                     logger.info('%s', JSON.stringify(lines, null, 2));
                 }
             } else {
                 console.log("No needle provided, showing preview of parsed entries");
-                var preview = parsed.slice(0, N).map(function(x){
+                var preview = parsed.slice(0, N).map(function (x) {
                     return {
                         cours: x.cours,
                         index: x.index,
@@ -127,127 +131,309 @@ cli
             }
         });
     })
-  .command('maxcap', 'Check the maximum capacity of a room')
-  .argument('<room>', 'Room identifier')
-  .action(({ args, logger }) => {
-    const roomId = args.room;
+    .command('maxcap', 'Check the maximum capacity of a room')
+    .argument('<room>', 'Room identifier')
+    .action(({ args, logger }) => {
+        const roomId = args.room;
 
-    // Check if identifier is empty
-    if (!roomId || roomId.trim() === '') {
-      return logger.error("The room identifier cannot be empty.");
-    }
-
-    const rootFolder = 'SujetA_data';
-    let allCourses = [];
-
-    // Read all subfolders
-    fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
-      if (err) return logger.error(err);
-
-      files.forEach(dirent => {
-        if (dirent.isDirectory()) {
-          const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
-
-          if (fs.existsSync(filePath)) {
-            const data = fs.readFileSync(filePath, 'utf8');
-            const parser = new CruParser();
-            parser.parse(data);
-
-            allCourses = allCourses.concat(parser.parsedCru);
-          }
+        // Check if identifier is empty
+        if (!roomId || roomId.trim() === '') {
+            return logger.error("The room identifier cannot be empty.");
         }
-      });
 
-      // Filter the courses of the requested room
-      const roomCourses = allCourses.filter(c => c.salle === roomId);
-
-      if (roomCourses.length === 0) {
-        return logger.error("This room does not exist.");
-      }
-
-      // Get the maximum capacity
-      const maxCap = Math.max(...roomCourses.map(c => parseInt(c.capacite, 10)));
-      logger.info(`Maximum capacity of room ${roomId}: ${maxCap}`);
-    });
-  })
-
-  .command('freeroom', 'Check available time slots for a room')
-  .argument('<room>', 'Room identifier')
-  .action(({ args, logger }) => {
-    const roomId = args.room;
-
-    // Check if identifier is empty
-    if (!roomId || roomId.trim() === '') {
-        return logger.error("The room identifier cannot be empty.");
-    }
-
-    const fs = require('fs');
-    const path = require('path');
-    const CruParser = require('./CruParser.js');
-
-    const rootFolder = path.join(__dirname, "SujetA_data");
-
-    fs.readdir(rootFolder, { withFileTypes: true }, (err, entries) => {
-        if (err) return logger.error("Cannot read SujetA_data: " + err);
-
-        const allCourses = [];
-        let filesToRead = 0;
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
 
         // Read all subfolders
-        entries.forEach(dirent => {
-            if (dirent.isDirectory()) {
-                const filePath = path.join(rootFolder, dirent.name, "edt.cru");
-                filesToRead++;
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
 
-                fs.readFile(filePath, 'utf8', (err, data) => {
-                    filesToRead--;
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
 
-                    if (!err) {
+                    if (fs.existsSync(filePath)) {
+                        const data = fs.readFileSync(filePath, 'utf8');
                         const parser = new CruParser();
                         parser.parse(data);
-                        allCourses.push(...(parser.parsedCru || []));
+
+                        allCourses = allCourses.concat(parser.parsedCru);
                     }
+                }
+            });
 
-                    // When all files are processed
-                    if (filesToRead === 0) {
+            // Filter the courses of the requested room
+            const roomCourses = allCourses.filter(c => c.salle === roomId);
 
-                        // Filter courses for the requested room
-                        const roomCourses = allCourses.filter(c => c.salle === roomId);
+            if (roomCourses.length === 0) {
+                return logger.error("This room does not exist.");
+            }
 
-                        if (roomCourses.length === 0) {
-                            return logger.error("This room does not exist.");
+            // Get the maximum capacity
+            const maxCap = Math.max(...roomCourses.map(c => parseInt(c.capacite, 10)));
+            logger.info(`Maximum capacity of room ${roomId}: ${maxCap}`);
+        });
+    })
+
+    .command('freeroom', 'Check available time slots for a room')
+    .argument('<room>', 'Room identifier')
+    .action(({ args, logger }) => {
+        const roomId = args.room;
+
+        // Check if identifier is empty
+        if (!roomId || roomId.trim() === '') {
+            return logger.error("The room identifier cannot be empty.");
+        }
+
+        const fs = require('fs');
+        const path = require('path');
+        const CruParser = require('./CruParser.js');
+
+        const rootFolder = path.join(__dirname, "SujetA_data");
+
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, entries) => {
+            if (err) return logger.error("Cannot read SujetA_data: " + err);
+
+            const allCourses = [];
+            let filesToRead = 0;
+
+            // Read all subfolders
+            entries.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, "edt.cru");
+                    filesToRead++;
+
+                    fs.readFile(filePath, 'utf8', (err, data) => {
+                        filesToRead--;
+
+                        if (!err) {
+                            const parser = new CruParser();
+                            parser.parse(data);
+                            allCourses.push(...(parser.parsedCru || []));
                         }
 
-                        // Occupied time slots by day
-                        const days = ["L", "MA", "ME", "J", "V"];
-                        const hours = Array.from({ length: 12 }, (_, i) => 8 + i); // 8h → 19h
+                        // When all files are processed
+                        if (filesToRead === 0) {
 
-                        // Prepare structure: for each day, list all free hours
-                        const freeSlots = {};
-                        days.forEach(d => freeSlots[d] = [...hours]);
+                            // Filter courses for the requested room
+                            const roomCourses = allCourses.filter(c => c.salle === roomId);
 
-                        // Remove occupied hours
-                        roomCourses.forEach(c => {
-                            const day = c.jour;
-                            if (!days.includes(day)) return;
-
-                            const [start, end] = c.horaire.split('-').map(h => parseInt(h, 10));
-
-                            for (let h = start; h < end; h++) {
-                                const index = freeSlots[day].indexOf(h);
-                                if (index !== -1) freeSlots[day].splice(index, 1);
+                            if (roomCourses.length === 0) {
+                                return logger.error("This room does not exist.");
                             }
-                        });
 
-                        // Final output
-                        logger.info(`Available time slots for room ${roomId}:`);
-                        logger.info(JSON.stringify(freeSlots, null, 2));
+                            // Occupied time slots by day
+                            const days = ["L", "MA", "ME", "J", "V"];
+                            const hours = Array.from({ length: 12 }, (_, i) => 8 + i); // 8h → 19h
+
+                            // Prepare structure: for each day, list all free hours
+                            const freeSlots = {};
+                            days.forEach(d => freeSlots[d] = [...hours]);
+
+                            // Remove occupied hours
+                            roomCourses.forEach(c => {
+                                const day = c.jour;
+                                if (!days.includes(day)) return;
+
+                                const [start, end] = c.horaire.split('-').map(h => parseInt(h, 10));
+
+                                for (let h = start; h < end; h++) {
+                                    const index = freeSlots[day].indexOf(h);
+                                    if (index !== -1) freeSlots[day].splice(index, 1);
+                                }
+                            });
+
+                            // Final output
+                            logger.info(`Available time slots for room ${roomId}:`);
+                            logger.info(JSON.stringify(freeSlots, null, 2));
+                        }
+                    });
+                }
+            });
+        });
+    })
+
+
+
+    .command('freeclasses', 'List of available classrooms')
+    .argument('<day>', 'Day identifier, e.g., L, MA, ME, J, V')
+    .argument('<start>', 'Start time in format HH:MM')
+    .argument('<end>', 'End time in format HH:MM')
+    .action(({ args, logger }) => {
+        const day = args.day;
+        const start = args.start;
+        const end = args.end;
+        const timeRegex = /^\d{2}:\d{2}$/;
+        const startMin = toMin(start);
+        const endMin = toMin(end);
+
+        function toMin(h) {
+            const parts = h.split(":");
+            const H = Number(parts[0]);
+            const M = Number(parts[1]);
+            return H * 60 + M;
+        }
+
+        if (!timeRegex.test(start)) {
+            return logger.error("Invalid start time . Format should be : HH:MM");
+        }
+
+        if (!timeRegex.test(end)) {
+            return logger.error("Invalid end time . Format should be : HH:MM");
+        }
+
+
+        const validDays = ["L", "MA", "ME", "J", "V"];
+        if (!validDays.includes(day)) {
+            return logger.error("Invalid day  . Format should be : 'L' or 'MA' or 'ME' or 'J' or 'V'");
+        }
+        if (start > end) {
+            return logger.error("invalid time range ");
+        }
+        if (startMin < 480 || startMin > 1200) {
+            return logger.error("Invalid start time, should be between 8am and 20pm");
+        }
+        if (endMin < 480 || endMin > 1200) {
+            return logger.error("Invalid end time, should be between 8am and 20pm");
+        }
+        if (endMin - startMin < 60) {
+            return logger.error("Invalid time range, the time slot should be at least one hour long. ");
+        }
+
+
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Read all subfolders
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        const data = fs.readFileSync(filePath, 'utf8');
+                        const parser = new CruParser();
+                        parser.parse(data);
+
+                        allCourses = allCourses.concat(parser.parsedCru);
+
                     }
-                });
+                }
+
+            });
+            const coursesOfDay = allCourses.filter(c => c.jour === day);
+
+            const occupiedRooms = coursesOfDay
+                .filter(c => toMin(c.heureDeb) < endMin && toMin(c.heureFin) > startMin)
+                .map(c => c.salle);
+            const occupied = [...new Set(occupiedRooms)];
+            const allRooms = [...new Set(allCourses.map(c => c.salle))];
+            const freeRooms = allRooms.filter(room => !occupied.includes(room));
+            if (freeRooms.length === 0) {
+                logger.info("no free rooms for this time range.");
+            } else {
+                logger.info("free rooms :");
+                freeRooms.forEach(room => console.log("- " + room));
             }
+
+        });
+    })
+
+    .command('DisplayCaps', 'display amounts of rooms per capacities')
+    .argument('<day>', 'Day identifier, e.g., L, MA, ME, J, V')
+    .action(({ args, logger }) => {
+
+        const day = args.day;
+
+        const validDays = ["L", "MA", "ME", "J", "V"];
+        if (!validDays.includes(day)) {
+            return logger.error("Invalid day. Format should be : 'L' or 'MA' or 'ME' or 'J' or 'V'");
+        }
+
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Read all subfolders
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        const data = fs.readFileSync(filePath, 'utf8');
+                        const parser = new CruParser();
+                        parser.parse(data);
+
+                        allCourses = allCourses.concat(parser.parsedCru);
+                    }
+                }
+            });
+
+            // filtrer par jour
+            const coursesOfDay = allCourses.filter(c => c.jour === day);
+            let listroomcapfiltered = []; 
+
+            for (let i = 0; i < coursesOfDay.length; i++) {
+
+                const current = coursesOfDay[i];
+                const currentroom = current.salle;
+                const currentcap = current.capacite;
+
+                let roomexist = false;
+
+                
+                for (let j = 0; j < listroomcapfiltered.length; j++) {
+
+                    
+                    if (listroomcapfiltered[j].salle === currentroom) {
+
+                        roomexist = true;
+
+                     
+                        if (currentcap > listroomcapfiltered[j].capacite) {
+                            listroomcapfiltered[j].capacite = currentcap;
+                        }
+                        break; 
+                    }
+                }
+
+               
+                if (!roomexist) {
+                    listroomcapfiltered.push({
+                        salle: currentroom,
+                        capacite: currentcap
+                    });
+                }
+            }
+
+            let capaciteCount = {};   
+
+            for (let i = 0; i < listroomcapfiltered.length; i++) {
+                const cap = listroomcapfiltered[i].capacite;
+
+                if (!capaciteCount[cap]) {
+                    capaciteCount[cap] = 1;   
+                } else {
+                    capaciteCount[cap]++;  
+                }
+            }
+
+            console.log(JSON.stringify(capaciteCount, null, 2));
+
+
+
+
         });
     });
-})
+
+
+
+
+
 
 
 cli.run(process.argv.slice(2));
