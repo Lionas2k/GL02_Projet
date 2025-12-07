@@ -3,7 +3,8 @@ const colors = require('colors');
 const CruParser = require('./CruParser.js');
 const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
-const path = require('path');
+const path = require('path');      
+
 
 cli
     .version('cru-parser-cli')
@@ -129,80 +130,6 @@ cli
                 logger.info('%s', JSON.stringify(preview, null, 2));
             }
         });
-    })
-
-    .command('salleCours', 'Output the classrooms associated to the class associated with <name>')
-    .argument('<name>', 'The name of the class')
-    // Only one arg, if 0 or 2+ will print an error automatically
-    .action(({ args, logger }) => {
-        // Path is important here, check if you've got the data at the right place and that you're placed in the CruParser_A24_Student folder. If you're placed in the overall project folder, you should probably change the following string with "CruParser_A24_Student/SujetA_data"
-        const data_dir = "SujetA_data";
-        let arraySalleCours = [];
-
-        try {
-            // Reads the data directory
-            const elements = fs.readdirSync(data_dir, { withFileTypes: true });
-
-            elements.forEach(element => {
-                // If it's a file, will just read the file
-                if (element.isFile()) {
-                    const filepath = path.join(data_dir, element.name);
-                    try {
-                        const data = fs.readFileSync(filepath, 'utf8');
-                        // Parses the sub file
-                        const analyzer = new CruParser();
-                        analyzer.parse(data);
-                        // Checks if the name is the same as what the user has chosen
-                        analyzer.parsedCru.forEach(Cru => {
-                            // Adds it to array
-                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
-                        });
-                    } catch (err) {
-                        logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
-                    }
-                }
-                // If encounters a sub directory, will read the files inside them
-                else if (element.isDirectory()) {
-                    const sub_dir = path.join(data_dir, element.name);
-                    try {
-                        const sub_files = fs.readdirSync(sub_dir, { withFileTypes: true });
-                        // Reads the files in the sub folder
-                        sub_files.forEach(file => {
-                            if (file.isFile()) {
-                                const filepath = path.join(sub_dir, file.name);
-                                try {
-                                    const data = fs.readFileSync(filepath, 'utf8');
-                                    // Parses the sub file
-                                    const analyzer = new CruParser();
-                                    analyzer.parse(data);
-                                    // Checks if the name is the same as what the user has chosen
-                                    analyzer.parsedCru.forEach(Cru => {
-                                        // Adds it to array
-                                        if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
-                                    });
-                                } catch (err) {
-                                    logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
-                                }
-                            }
-                        });
-                    } catch (err) {
-                        logger.warn(`Impossible de lire le sous-dossier ${sub_dir} : ${err.message}`);
-                    }
-                }
-            });
-            // A set can't have duplicates (useful math!), but can't be printed as easily as an array, so we need to cast it back as an array
-            arraySalleCours = [...new Set(arraySalleCours)];
-
-            if (arraySalleCours.length === 0) {
-                logger.error("Aucune correspondance trouvée.");
-            } else {
-                logger.info("Voici la liste des salles associées au cours " + args.name + ":\n" + arraySalleCours);
-            }
-
-        } catch (err) {
-            logger.error(`Impossible de lire le dossier ${data_dir} : ${err.message}`);
-        }
-
     });
 
 cli.run(process.argv.slice(2));
