@@ -372,11 +372,9 @@ cli
                     }
                 }
             });
-
-            // filtrer par jour
+            
             const coursesOfDay = allCourses.filter(c => c.jour === day);
-            let listroomcapfiltered = []; 
-
+            let listroomcapfiltered = [];
             for (let i = 0; i < coursesOfDay.length; i++) {
 
                 const current = coursesOfDay[i];
@@ -385,23 +383,17 @@ cli
 
                 let roomexist = false;
 
-                
                 for (let j = 0; j < listroomcapfiltered.length; j++) {
 
-                    
                     if (listroomcapfiltered[j].salle === currentroom) {
 
                         roomexist = true;
-
-                     
                         if (currentcap > listroomcapfiltered[j].capacite) {
                             listroomcapfiltered[j].capacite = currentcap;
                         }
                         break; 
                     }
                 }
-
-               
                 if (!roomexist) {
                     listroomcapfiltered.push({
                         salle: currentroom,
@@ -410,8 +402,7 @@ cli
                 }
             }
 
-            let capaciteCount = {};   
-
+            let capaciteCount = {};
             for (let i = 0; i < listroomcapfiltered.length; i++) {
                 const cap = listroomcapfiltered[i].capacite;
 
@@ -421,12 +412,7 @@ cli
                     capaciteCount[cap]++;  
                 }
             }
-
             console.log(JSON.stringify(capaciteCount, null, 2));
-
-
-
-
         });
     });
 
