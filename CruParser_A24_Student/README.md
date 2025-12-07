@@ -13,6 +13,12 @@ Setup (PowerShell):
    ```BASH
    npm install
    ```
+   and also 
+   :
+   ```BASH
+   npm install vega vega-lite canvas
+   ```
+
 
 3. Run the CLI test command:
    ```BASH

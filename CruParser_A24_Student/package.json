@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@caporal/core": "^3.0.2",
-    "colors": "^1.4.0"
+    "colors": "^1.4.0",
+    "vega": "^6.2.0",
+    "vega-lite": "^6.4.1"
   }
 }
