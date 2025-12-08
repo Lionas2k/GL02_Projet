@@ -262,7 +262,10 @@ cli
     .argument('<lastDay>', 'Ending day of the time period : "L", "MA", "ME", "J", "V"')
     .argument('<lastHour>', 'Ending hour of the time period, from 9:00 to 20:00 : examples -> 9:30, 20:00')
     .argument('<lastWeek>', 'Ending week of the time period : "F0" to "F9"')
-    .action(({ args, logger }) => {
+    .option('-c, --filtercm', 'Filters only by the CM classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-d, --filtertd', 'Filters only by the TD classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-t, --filtertp', 'Filters only by the TP classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
 
         const arrDays = ["L", "MA", "ME", "J", "V"];
         // Checks if days are properly written, else informs the user of an error
@@ -285,8 +288,9 @@ cli
         // Need of parseInt, since values are considered as strings initially
         // Remember that a school day is from 8:00 to 20:00, hence 12 hours per day max, for 5 days
 
-        // Example of call: convertHoursToReference(parseInt(args.lastWeek.substring(1)), arrDays.indexOf(args.lastDay), parseInt(args.lastHour.split(":")[0]), parseInt(args.lastHour.split(":")[1]))
+
         // Following function takes in the NUMBER values associated with each concept
+        // See examples of calls
         // VERY IMPORTANT, CruParser gives cours.semaine as numbers directly
         // could be done better sorry
         function convertHoursToReference(week, day, hours, minutes) {
@@ -356,11 +360,34 @@ cli
                                         const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
 
                                         const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+                                        // Check filters
 
-                                        if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
-                                            // Appends classes in the array of selected classes
-                                            arrayCours.push(Cru);
+                                        if (!options.c && !options.d && !options.t) {
+
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
                                         }
+                                        if (options.c) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "C") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+                                        if (options.t) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "T") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+                                        if (options.d) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "D") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+
                                     })
 
                                 } catch (err) {
@@ -418,10 +445,10 @@ cli
 
         async function printGraph() {
 
-            // Import dynamique → compatible CJS
+            // Imports of Vega here, need async function because of conflicts with other imports
             const vega = await import("vega");
             const vegaLite = await import("vega-lite");
-
+            // Transforms our json to a proper format for vega
             const data = Object.entries(json_tauxSalles).map(([Salle, Rate]) => ({ Salle, Rate }));
             const vlSpec = {
                 $schema: "https://vega.github.io/schema/vega-lite/v5.json",
@@ -436,14 +463,14 @@ cli
             const vegaSpec = vegaLite.compile(vlSpec).spec;
 
             const view = new vega.View(vega.parse(vegaSpec), { renderer: "svg" });
-
+            // Creates the image containing the graph
             const svg = await view.toSVG();
             fs.writeFileSync("chart.svg", svg);
-            console.log("✔ chart.svg généré !");
+            logger.info("Fichier généré dans le dossier, veuillez le consulter.");
         }
 
         printGraph();
-        
+
     })
 
 
