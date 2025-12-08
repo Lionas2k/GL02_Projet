@@ -265,6 +265,7 @@ cli
     .option('-c, --filtercm', 'Filters only by the CM classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
     .option('-d, --filtertd', 'Filters only by the TD classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
     .option('-t, --filtertp', 'Filters only by the TP classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-e, --export', 'Exports the rooms with their associated rates in a .csv file', { validator: cli.BOOLEAN, default: false })
     .action(({ args, options, logger }) => {
 
         const arrDays = ["L", "MA", "ME", "J", "V"];
@@ -461,10 +462,21 @@ cli
             const salleName = group[0].salle;
             json_tauxSalles[salleName] = rate;
         })
-
-
+        console.log(Object.entries(json_tauxSalles)[0][0]);
+        if (options.e) {
+            let csvExport = "Salle,Taux\n";
+            Object.entries(json_tauxSalles).forEach(row => {
+                csvExport = csvExport + row[0] + ',' + row[1] + "\n";
+            })
+            fs.writeFile('rates.csv', csvExport, 'utf-8', err => {
+                if (err) {
+                    logger.error("Erreur d'écriture: " + err);
+                } else {
+                    logger.info(`Fichier csv disponible: ${outputFile}`);
+                }
+            });
+        }
         //Vegalite part
-        //json_tauxSalles = JSON.stringify(json_tauxSalles, null, 2);
 
         async function printGraph() {
 
@@ -488,7 +500,7 @@ cli
             const view = new vega.View(vega.parse(vegaSpec), { renderer: "svg" });
             // Creates the image containing the graph
             const svg = await view.toSVG();
-            fs.writeFileSync("chart.svg", svg);
+            fs.writeFileSync("graph.svg", svg);
             logger.info("Fichier généré dans le dossier, veuillez le consulter.");
         }
 
