@@ -426,6 +426,259 @@ cli
         });
     })
 
+    .command('tauxSalles', 'Gives a graphical representation of classroom occupation rate in a time frame')
+    // The specifications declare input as 'BeginningDate' and 'EndingDate', and since our data are .cru files, the following arguments are the ones described by the ABNF of the aforementioned files
+    .argument('<firstDay>', 'Starting day of the time period : "L", "MA", "ME", "J", "V"')
+    .argument('<firstHour>', 'Starting hour of the time period, from 8:00 to 19:00 : examples -> 8:00, 10:30')
+    .argument('<firstWeek>', 'Starting week of the time period : "F0" to "F9"')
+    .argument('<lastDay>', 'Ending day of the time period : "L", "MA", "ME", "J", "V"')
+    .argument('<lastHour>', 'Ending hour of the time period, from 9:00 to 20:00 : examples -> 9:30, 20:00')
+    .argument('<lastWeek>', 'Ending week of the time period : "F0" to "F9"')
+    .option('-c, --filtercm', 'Filters only by the CM classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-d, --filtertd', 'Filters only by the TD classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-t, --filtertp', 'Filters only by the TP classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-e, --export', 'Exports the rooms with their associated rates in a .csv file', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
+
+        const arrDays = ["L", "MA", "ME", "J", "V"];
+        // Checks if days are properly written, else informs the user of an error
+        if ((!arrDays.includes(args.firstDay)) || (!arrDays.includes(args.lastDay))) {
+            logger.error("Période invalide (Jours)");
+        }
+        // Checks if hours are properly written, else informs the user of an error
+        const ruleHours = /^((0?8|0?9|1\d):[0-5]\d|20:00)$/;
+        if ((!ruleHours.test(args.firstHour)) || (!ruleHours.test(args.lastHour))) {
+            logger.error("Période invalide (Heures)");
+        }
+        // Checks if weeks are properly written, else informs the user of an error
+        // The specifications of .cru files indicate weeks having only 1DIGIT, thus not going through the whole year?
+        const ruleWeeks = /^F\d$/;
+        if ((!ruleWeeks.test(args.firstWeek)) || (!ruleWeeks.test(args.lastWeek))) {
+            logger.error("Période invalide (Semaine)");
+        }
+
+        // Very useful to compare dates by using total time passed from F0 8:00
+        // Need of parseInt, since values are considered as strings initially
+        // Remember that a school day is from 8:00 to 20:00, hence 12 hours per day max, for 5 days
+
+
+        // Following function takes in the NUMBER values associated with each concept
+        // See examples of calls
+        // VERY IMPORTANT, CruParser gives cours.semaine as numbers directly
+        // could be done better sorry
+        function convertHoursToReference(week, day, hours, minutes) {
+            return week * 5 * 12 + day * 12 + hours + minutes / 60;
+        }
+
+        // Calculation of the total hours in the timeframe
+        const hoursLastDayToReference = convertHoursToReference(parseInt(args.lastWeek.substring(1)), arrDays.indexOf(args.lastDay), parseInt(args.lastHour.split(":")[0]), parseInt(args.lastHour.split(":")[1]));
+        const hoursFirstDayToReference = convertHoursToReference(parseInt(args.firstWeek.substring(1)), arrDays.indexOf(args.firstDay), parseInt(args.firstHour.split(":")[0]), parseInt(args.firstHour.split(":")[1]));
+
+        const hoursTotal = hoursLastDayToReference - hoursFirstDayToReference;
+        // Checks if time period is logical, relative to the starting and ending input
+        if (hoursTotal <= 0) {
+            logger.error("Période invalide (Date de début>=Date de fin)")
+        }
+
+        // Path is important here, check if you've got the data at the right place and that you're placed in the CruParser_A24_Student folder. If you're placed in the overall project folder, you should probably change the following string with "CruParser_A24_Student/SujetA_data"
+        const data_dir = "SujetA_data";
+        let arrayCours = [];
+
+        try {
+            // Reads the data directory
+            const elements = fs.readdirSync(data_dir, { withFileTypes: true });
+
+            elements.forEach(element => {
+                // If it's a file, will just read the file
+                if (element.isFile()) {
+                    const filepath = path.join(data_dir, element.name);
+                    try {
+                        const data = fs.readFileSync(filepath, 'utf8');
+                        // Parses the sub file
+                        const analyzer = new CruParser();
+                        analyzer.parse(data);
+                        // Filters the classes happening outside the timeframe
+                        analyzer.parsedCru.forEach(Cru => {
+                            const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
+
+                            const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+                            // Check filters
+
+                            if (!options.c && !options.d && !options.t) {
+
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+                            if (options.c) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "C") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+                            if (options.t) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "T") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+                            if (options.d) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "D") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+
+                        })
+
+                    } catch (err) {
+                        logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                    }
+                }
+                // If encounters a sub directory, will read the files inside them
+                else if (element.isDirectory()) {
+                    const sub_dir = path.join(data_dir, element.name);
+                    try {
+                        const sub_files = fs.readdirSync(sub_dir, { withFileTypes: true });
+                        // Reads the files in the sub folder
+                        sub_files.forEach(file => {
+                            if (file.isFile()) {
+                                const filepath = path.join(sub_dir, file.name);
+                                try {
+                                    const data = fs.readFileSync(filepath, 'utf8');
+                                    // Parses the sub file
+                                    const analyzer = new CruParser();
+                                    analyzer.parse(data);
+                                    // Filters the classes happening outside the timeframe
+
+                                    analyzer.parsedCru.forEach(Cru => {
+                                        const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
+
+                                        const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+                                        // Check filters
+
+                                        if (!options.c && !options.d && !options.t) {
+
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+                                        if (options.c) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "C") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+                                        if (options.t) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "T") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+                                        if (options.d) {
+                                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "D") {
+                                                // Appends classes in the array of selected classes
+                                                arrayCours.push(Cru);
+                                            }
+                                        }
+
+                                    })
+
+                                } catch (err) {
+                                    logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        logger.warn(`Impossible de lire le sous-dossier ${sub_dir} : ${err.message}`);
+                    }
+                }
+            });
+
+        } catch (err) {
+            logger.error(`Impossible de lire le dossier ${data_dir} : ${err.message}`);
+        }
+        // Groups cours objects by classroom
+        let arrayGroupBySalle = [];
+
+        arrayCours.forEach(cours => {
+            // Looks for matching group
+            let group = arrayGroupBySalle.find(g => g[0].salle === cours.salle);
+
+            if (group) {
+                group.push(cours); // If exists, push into group
+            } else {
+                arrayGroupBySalle.push([cours]); // Else, create a new group with the class
+            }
+        });
+
+        // Calculates duration of classroom being used in hours and compares it to total hours possible within the time period
+        // Hypothesis of classes not overlapping very important here
+        let json_tauxSalles = {};
+        arrayGroupBySalle.forEach(group => {
+            let hoursUsed = 0;
+            group.forEach(cours => {
+                // Convert all in minutes, then back in hours
+                const hourClassStart = convertHoursToReference(parseInt(cours.semaine), arrDays.indexOf(cours.jour), parseInt(cours.heureDeb.split(":")[0]), parseInt(cours.heureDeb.split(":")[1]));
+                const hourClassEnd = convertHoursToReference(parseInt(cours.semaine), arrDays.indexOf(cours.jour), parseInt(cours.heureFin.split(":")[0]), parseInt(cours.heureFin.split(":")[1]));
+                const classDuration = hourClassEnd - hourClassStart;
+                hoursUsed += classDuration;
+            })
+            // The most important value that we want to express
+            let rate = hoursUsed / hoursTotal;
+            // Conversion to whole percentage
+            rate = Math.floor(rate * 100);
+            // Extract it into json, ie. associating room with rate
+            const salleName = group[0].salle;
+            json_tauxSalles[salleName] = rate;
+        })
+        if (options.e) {
+            let csvExport = "Salle,Taux\n";
+            Object.entries(json_tauxSalles).forEach(row => {
+                csvExport = csvExport + row[0] + ',' + row[1] + "\n";
+            })
+            fs.writeFile('rates.csv', csvExport, 'utf-8', err => {
+                if (err) {
+                    logger.error("Erreur d'écriture: " + err);
+                } else {
+                    logger.info(`Fichier csv disponible: ${outputFile}`);
+                }
+            });
+        }
+        //Vegalite part
+
+        async function printGraph() {
+
+            // Imports of Vega here, need async function because of conflicts with other imports
+            const vega = await import("vega");
+            const vegaLite = await import("vega-lite");
+            // Transforms our json to a proper format for vega
+            const data = Object.entries(json_tauxSalles).map(([Salle, Rate]) => ({ Salle, Rate }));
+            const vlSpec = {
+                $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+                data: { values: data },
+                mark: "bar",
+                encoding: {
+                    y: { field: "Salle", type: "nominal" },
+                    x: { field: "Rate", type: "quantitative" }
+                }
+            };
+
+            const vegaSpec = vegaLite.compile(vlSpec).spec;
+
+            const view = new vega.View(vega.parse(vegaSpec), { renderer: "svg" });
+            // Creates the image containing the graph
+            const svg = await view.toSVG();
+            fs.writeFileSync("graph.svg", svg);
+            logger.info("Fichier généré dans le dossier, veuillez le consulter.");
+        }
+
+        printGraph();
+
+    })
+
 
 function checkSchedulingConflicts(allCourses, detailed, logger) {
     const conflicts = [];
@@ -639,6 +892,8 @@ function generateICalendar(allCourses, requestedCourses, startDate, endDate, out
         logger.info(`iCalendar file generated successfully: ${outputFile}`.green);
         logger.info(`Generated ${filteredCourses.length} course entries for ${requestedCourses.join(', ')}`);
     });
+
+
 }
 
 
