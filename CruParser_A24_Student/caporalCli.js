@@ -329,11 +329,34 @@ cli
                             const classStartToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureDeb.split(":")[0]), parseInt(Cru.heureDeb.split(":")[1]));
 
                             const classEndToReference = convertHoursToReference(parseInt(Cru.semaine), arrDays.indexOf(Cru.jour), parseInt(Cru.heureFin.split(":")[0]), parseInt(Cru.heureFin.split(":")[1]));
+                            // Check filters
 
-                            if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
-                                // Appends classes in the array of selected classes
-                                arrayCours.push(Cru);
+                            if (!options.c && !options.d && !options.t) {
+
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference) {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
                             }
+                            if (options.c) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "C") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+                            if (options.t) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "T") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+                            if (options.d) {
+                                if (classEndToReference >= hoursFirstDayToReference && classStartToReference <= hoursLastDayToReference && Cru.type[0] === "D") {
+                                    // Appends classes in the array of selected classes
+                                    arrayCours.push(Cru);
+                                }
+                            }
+
                         })
 
                     } catch (err) {
