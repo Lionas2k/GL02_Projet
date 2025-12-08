@@ -404,14 +404,46 @@ cli
                 hoursUsed += classDuration;
             })
             // The most important value that we want to express
-            const rate = hoursUsed / hoursTotal;
+            let rate = hoursUsed / hoursTotal;
+            // Conversion to whole percentage
+            rate = Math.floor(rate * 100);
             // Extract it into json, ie. associating room with rate
             const salleName = group[0].salle;
             json_tauxSalles[salleName] = rate;
         })
-        //VEGALITE TO DO
-        console.log(JSON.stringify(json_tauxSalles, null, 2));
 
+
+        //Vegalite part
+        //json_tauxSalles = JSON.stringify(json_tauxSalles, null, 2);
+
+        async function printGraph() {
+
+            // Import dynamique → compatible CJS
+            const vega = await import("vega");
+            const vegaLite = await import("vega-lite");
+
+            const data = Object.entries(json_tauxSalles).map(([Salle, Rate]) => ({ Salle, Rate }));
+            const vlSpec = {
+                $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+                data: { values: data },
+                mark: "bar",
+                encoding: {
+                    y: { field: "Salle", type: "nominal" },
+                    x: { field: "Rate", type: "quantitative" }
+                }
+            };
+
+            const vegaSpec = vegaLite.compile(vlSpec).spec;
+
+            const view = new vega.View(vega.parse(vegaSpec), { renderer: "svg" });
+
+            const svg = await view.toSVG();
+            fs.writeFileSync("chart.svg", svg);
+            console.log("✔ chart.svg généré !");
+        }
+
+        printGraph();
+        
     })
 
 
