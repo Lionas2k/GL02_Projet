@@ -44,4 +44,26 @@ If `npm` is not installed on your machine, install Node.js (LTS) from https://no
         <li>-d | --day [day] : returns the parsed values of the given file where the day has been found.</li>
         ⮡ example: <code>node caporalCli search <i>path/to/the/file/file.cru</i> -d <i>day</i></code>
     </ul>
-</li>
+    </li>
+    <li> ical : This command generates an iCalendar (.ics) file for specified courses between two dates.
+    <ul>
+        <li>Parameters:
+            <ul>
+                <li>&lt;start&gt; : Start date in YYYY-MM-DD format</li>
+                <li>&lt;end&gt; : End date in YYYY-MM-DD format</li>
+                <li>&lt;courses...&gt; : One or more course codes (e.g., SY02, MT09, CL02)</li>
+            </ul>
+        </li>
+        <li>-o | --output [filename] : Specify the output filename (default: calendar.ics)</li>
+        ⮡ example: <code>node caporalCli ical 2024-01-15 2024-06-30 SY02 MT09 -o mon_calendrier.ics</code>
+    </ul>
+    </li>
+    <li> checkconflicts : This command checks for scheduling conflicts in all CRU files by detecting overlapping time slots in the same room on the same day and week.
+    <ul>
+        <li>no option given : displays basic conflict report with course names, room, day and time</li>
+        ⮡ example: <code>node caporalCli checkconflicts</code>
+        <li>-d | --detailed : displays detailed conflict information including course indices</li>
+        ⮡ example: <code>node caporalCli checkconflicts --detailed</code>
+    </ul>
+    </li>
+</ul>

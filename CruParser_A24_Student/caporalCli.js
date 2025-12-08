@@ -3,7 +3,6 @@ const colors = require('colors');
 const CruParser = require('./CruParser.js');
 const cours = require('./cours.js');
 const cli = require("@caporal/core").default;
-const path = require('path');
 
 const path = require('path');
 
@@ -385,9 +384,172 @@ cli
             }
         });
     })
+    .command('checkconflicts', 'Check for scheduling conflicts in CRU files')
+    .option('-d, --detailed', 'Show detailed conflict information', { validator: cli.BOOLEAN, default: false })
+    .action(({ options, logger }) => {
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Lis tous les sous-dossiers
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            let filesToRead = 0;
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        filesToRead++;
+                        fs.readFile(filePath, 'utf8', (err, data) => {
+                            filesToRead--;
+
+                            if (!err) {
+                                const parser = new CruParser();
+                                parser.parse(data);
+                                allCourses = allCourses.concat(parser.parsedCru);
+                            }
+
+                            // Après avoir recuperé tous les cours
+                            if (filesToRead === 0) {
+                                checkSchedulingConflicts(allCourses, options.detailed, logger);
+                            }
+                        });
+                    }
+                }
+            });
+
+            if (filesToRead === 0) {
+                return logger.error("No .cru files found");
+            }
+        });
+    })
+
+
+function checkSchedulingConflicts(allCourses, detailed, logger) {
+    const conflicts = [];
+
+    const roomSchedule = {};
+
+    allCourses.forEach(course => {
+        if (!course.salle || !course.jour || !course.heureDeb || !course.heureFin) return;
+
+        const key = `${course.salle}-${course.jour}`;
+
+        if (!roomSchedule[key]) {
+            roomSchedule[key] = [];
+        }
+
+        roomSchedule[key].push({
+            cours: course.cours,
+            index: course.index,
+            type: course.type,
+            salle: course.salle,
+            jour: course.jour,
+            heureDeb: course.heureDeb,
+            heureFin: course.heureFin,
+            semaine: course.semaine,
+            raw: course.raw
+        });
+    });
+
+    const timeToMinutes = (timeStr) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    // vérifie si il y a un conflit entre 2 cours
+    Object.keys(roomSchedule).forEach(key => {
+        const courses = roomSchedule[key];
+        const [room, day] = key.split('-');
+
+
+        for (let i = 0; i < courses.length; i++) {
+            for (let j = i + 1; j < courses.length; j++) {
+                const c1 = courses[i];
+                const c2 = courses[j];
+
+                const semaine1 = c1.semaine;
+                const semaine2 = c2.semaine;
+
+                if (semaine1 && semaine2 && semaine1 !== semaine2) {
+                    continue;
+                }
+
+                const start1 = timeToMinutes(c1.heureDeb);
+                const end1 = timeToMinutes(c1.heureFin);
+                const start2 = timeToMinutes(c2.heureDeb);
+                const end2 = timeToMinutes(c2.heureFin);
+
+                if (start1 < end2 && start2 < end1) {
+                    conflicts.push({
+                        room: room,
+                        day: day,
+                        course1: {
+                            name: c1.cours,
+                            index: c1.index,
+                            type: c1.type,
+                            horaire: `${c1.heureDeb} - ${c1.heureFin}`,
+                            semaine: c1.semaine
+                        },
+                        course2: {
+                            name: c2.cours,
+                            index: c2.index,
+                            type: c2.type,
+                            horaire: `${c2.heureDeb} - ${c2.heureFin}`,
+                            semaine: c2.semaine
+                        }
+                    });
+                }
+            }
+        }
+    });
+
+    if (conflicts.length === 0) {
+        logger.info("✓ Aucun conflit détecté ! Tous les créneaux sont cohérents.".green);
+    } else {
+        logger.info(`✗ ${conflicts.length} conflit(s) détecté(s) :`.red);
+        logger.info('');
+
+        const dayNames = {
+            'L': 'Lundi',
+            'MA': 'Mardi',
+            'ME': 'Mercredi',
+            'J': 'Jeudi',
+            'V': 'Vendredi',
+            'S': 'Samedi',
+            'D': 'Dimanche'
+        };
+
+        conflicts.forEach((conflict, index) => {
+            logger.info(`Conflit #${index + 1}:`.yellow);
+            logger.info(`  Salle: ${conflict.room}`);
+            logger.info(`  Jour: ${dayNames[conflict.day] || conflict.day}`);
+            logger.info(`  Cours 1: ${conflict.course1.name} ${conflict.course1.type} (${conflict.course1.horaire})${conflict.course1.semaine ? ' - Semaine ' + conflict.course1.semaine : ''}`);
+            logger.info(`  Cours 2: ${conflict.course2.name} ${conflict.course2.type} (${conflict.course2.horaire})${conflict.course2.semaine ? ' - Semaine ' + conflict.course2.semaine : ''}`);
+
+            if (detailed) {
+                logger.info(`  Index cours 1: ${conflict.course1.index}`);
+                logger.info(`  Index cours 2: ${conflict.course2.index}`);
+            }
+
+            logger.info('');
+        });
+
+        const conflictsByRoom = {};
+        conflicts.forEach(c => {
+            conflictsByRoom[c.room] = (conflictsByRoom[c.room] || 0) + 1;
+        });
+
+        logger.info('Résumé par salle:'.cyan);
+        Object.keys(conflictsByRoom).sort().forEach(room => {
+            logger.info(`  ${room}: ${conflictsByRoom[room]} conflit(s)`);
+        });
+    }
+}
 
 function generateICalendar(allCourses, requestedCourses, startDate, endDate, outputFile, logger) {
-    // Filter courses matching requested course codes
     const filteredCourses = allCourses.filter(c =>
         requestedCourses.some(rc => c.cours === rc || c.section === rc)
     );
