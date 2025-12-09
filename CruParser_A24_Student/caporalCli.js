@@ -626,6 +626,12 @@ cli
         } catch (err) {
             logger.error(`Impossible de lire le dossier ${data_dir} : ${err.message}`);
         }
+
+        // Checks if there's actual classes taking place in the timeframe, as an error case
+        if(arrayCours.length===0){
+            logger.error("No course in the timeframe");
+        }
+
         // Groups cours objects by classroom
         let arrayGroupBySalle = [];
 
