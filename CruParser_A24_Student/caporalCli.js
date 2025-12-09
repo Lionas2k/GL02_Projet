@@ -135,7 +135,10 @@ cli
     .command('salleCours', 'Output the classrooms associated to the class associated with <name>')
     .argument('<name>', 'The name of the class')
     // Only one arg, if 0 or 2+ will print an error automatically
-    .action(({ args, logger }) => {
+    .option('-c, --filtercm', 'Filters only by the CM classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-d, --filtertd', 'Filters only by the TD classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .option('-t, --filtertp', 'Filters only by the TP classes, use only one filter at a time', { validator: cli.BOOLEAN, default: false })
+    .action(({ args, options, logger }) => {
         // Path is important here, check if you've got the data at the right place and that you're placed in the CruParser_A24_Student folder. If you're placed in the overall project folder, you should probably change the following string with "CruParser_A24_Student/SujetA_data"
         const data_dir = "SujetA_data";
         let arraySalleCours = [];
@@ -155,8 +158,19 @@ cli
                         analyzer.parse(data);
                         // Checks if the name is the same as what the user has chosen
                         analyzer.parsedCru.forEach(Cru => {
-                            // Adds it to array
-                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                            // Check options filters and adds it to array
+                            if (!options.c && !options.d && !options.t) {
+                                if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                            }
+                            if (options.c) {
+                                if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                            }
+                            if (options.d) {
+                                if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                            }
+                            if (options.t) {
+                                if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                            }
                         });
                     } catch (err) {
                         logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
@@ -178,8 +192,20 @@ cli
                                     analyzer.parse(data);
                                     // Checks if the name is the same as what the user has chosen
                                     analyzer.parsedCru.forEach(Cru => {
-                                        // Adds it to array
-                                        if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                        // Check options filters and adds it to array
+                                        if (!options.c && !options.d && !options.t) {
+                                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                        }
+                                        if (options.c) {
+                                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                        }
+                                        if (options.d) {
+                                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                        }
+                                        if (options.t) {
+                                            if (Cru.cours === args.name) arraySalleCours.push(Cru.salle);
+                                        }
+
                                     });
                                 } catch (err) {
                                     logger.warn(`Impossible de lire ${filepath} : ${err.message}`);
