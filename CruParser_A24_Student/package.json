@@ -9,5 +9,8 @@
   "dependencies": {
     "@caporal/core": "^3.0.2",
     "colors": "^1.4.0"
+  },
+  "devDependencies": {
+    "jasmin": "^0.0.2"
   }
 }
