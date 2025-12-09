@@ -66,4 +66,54 @@ If `npm` is not installed on your machine, install Node.js (LTS) from https://no
         ⮡ example: <code>node caporalCli checkconflicts --detailed</code>
     </ul>
     </li>
+    <li> salleCours : This command gives a list of classrooms in which the class specified by the user is taking place.
+    <ul>
+        <li>Parameter :
+                <ul>
+                <li>name : Name of the class</li>
+                ⮡ example: <code>node caporalCli salleCours GL02</code>
+                </ul>
+        </li>
+        <li>Options :
+            <ul>
+            <li>no option given : Displays a list of classrooms, taking in classes of all types </li>
+            <li>-c | --filtercm : Filter by CM type classes</li>
+            ⮡ example: <code>node caporalCli salleCours MA03 -c</code>
+            <li>-t | --filtertp : Filter by TP type classes</li>
+            ⮡ example: <code>node caporalCli salleCours AP03 -t</code>
+            <li>-d | --filtertd : Filter by TD type classes</li>
+            ⮡ example: <code>node caporalCli salleCours GE37 -d</code>
+            </ul>
+        </li>
+    </ul>
+    </li>
+    <li> tauxSalles : This command gives back a graph of occupation rates by classroom to the user in .svg and can export related data to a .csv file.
+    </li>
+    <ul>
+        <li>Parameters :
+                <ul>
+                <li>firstDay : Starting day of the time period : "L", "MA", "ME", "J", "V"</li>
+                <li>firstHour : Starting hour of the time period, from 8:00 to 20:00</li>
+                <li>firstWeek : Starting week of the time period : "F0" to "F9"</li>
+                <li>lastDay : Ending day of the time period : "L", "MA", "ME", "J", "V"</li>
+                <li>lastHour : Ending hour of the time period, from 8:00 to 20:00</li>
+                <li>lastWeek : Ending week of the time period : "F0" to "F9"</li>
+                </ul>
+                ⮡ example: <code>node caporalCli tauxSalles L 8:30 F1 J 17:00 F2</code>
+                <br>
+                ⮡ example: <code>node caporalCli tauxSalles MA 15:30 F1 ME 19:00 F1</code> 
+        </li>
+        <li>Options :
+            <ul>
+            <li>-c | --filtercm : Filter by CM type classes</li>
+            ⮡ example: <code>node caporalCli tauxSalles MA 15:30 F1 ME 19:00 F1 -c</code> 
+            <li>-t | --filtertp : Filter by TP type classes</li>
+            ⮡ example: <code>node caporalCli tauxSalles L 10:30 F2 V 19:00 F2 -t</code> 
+            <li>-d | --filtertd : Filter by TD type classes</li>
+            ⮡ example: <code>node caporalCli tauxSalles MA 9:00 F1 ME 15:30 F1 -d</code> 
+            <li>-e | --export : Exports the rooms with their associated rates in a .csv file</li>
+            ⮡ example: <code>node caporalCli tauxSalles ME 9:30 F1 J 16:30 F2 -e</code> 
+            </ul>
+        </li>
+    </ul>
 </ul>
