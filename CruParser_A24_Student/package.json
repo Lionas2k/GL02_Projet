@@ -4,13 +4,14 @@
   "description": "CRU parser and small CLI for searching/testing .cru files",
   "main": "caporalCli.js",
   "scripts": {
-    "start": "node caporalCli.js"
+    "start": "node caporalCli.js",
+    "test": "jasmine"
   },
   "dependencies": {
     "@caporal/core": "^3.0.2",
     "colors": "^1.4.0"
   },
   "devDependencies": {
-    "jasmin": "^0.0.2"
+    "jasmine": "^5.13.0"
   }
 }
