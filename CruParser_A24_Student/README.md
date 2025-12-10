@@ -160,7 +160,7 @@ If `npm` is not installed on your machine, install Node.js (LTS) from https://no
 </ul>
 
 #### Unit tests
-<li> ** - Max Capacity **  
+<li>  Max Capacity   
     <ul>
         <li>Test file: <code>spec/F2_capacity.spec.js</code></li>
         <li>Command to run: <code>npm run test:f2</code></li>
@@ -171,12 +171,35 @@ If `npm` is not installed on your machine, install Node.js (LTS) from https://no
                 <li>Throws an error if the room does not exist</li>
             </ul>
         </li>
-        <li>Expected results/logs:
-            <ul>
-                <li>Existing room (e.g., D102):
-                    <pre>
-    <li>** - Free Room Slots (Spec F3)**  
+<li>Expected results/logs:
     <ul>
+        <li>Existing room (e.g., D102):
+            <pre>
+Test: Retrieving the maximum capacity for room 'D102'
+   - Number of courses found: 4
+   - Maximum capacity found: 120
+Success: maximum capacity correctly determined for 'D102'
+            </pre>
+        </li>
+        <li>Empty room:
+            <pre>
+Test: Handling an empty room
+   - Empty room detected correctly
+Success: error correctly thrown for empty room
+            </pre>
+        </li>
+        <li>Non-existent room:
+            <pre>
+Test: Non-existent room 'ROOM_NOT_REAL'
+   - Number of courses found: 0
+   - Room detected as non-existent
+Success: error correctly thrown for non-existent room
+            </pre>
+        </li>
+    </ul>
+</li>
+    <li>Free Room Slots (Spec F3)
+        <ul>
         <li>Test file: <code>spec/F3_freeroom.spec.js</code></li>
         <li>Command to run: <code>npm run test:f3</code></li>
         <li>What it checks:
@@ -186,7 +209,37 @@ If `npm` is not installed on your machine, install Node.js (LTS) from https://no
                 <li>Throws an error if the room does not exist</li>
             </ul>
         </li>
-        <li>Expected results/logs:
-            <ul>
-                <li>Existing room (e.g., D102):
-                    <pre>
+<li>Expected results/logs:
+    <ul>
+        <li>Existing room (e.g., D102):
+            <pre>
+Test: Computing free time slots for room 'D102'
+   - Courses found: 4
+   - Example of free time slots:
+{
+  "L": [8, 9, 10, 13, 14, 15, 16, 17, 18, 19],
+  "MA": [8, 9, 10, 11, 12, 15, 16, 17, 18, 19],
+  "ME": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+  "J": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+  "V": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+}
+Success: free time slots generated correctly for room 'D102'
+            </pre>
+        </li>
+        <li>Empty room:
+            <pre>
+Test: Empty room identifier
+   - Empty identifier detected
+Success: error correctly thrown for empty room identifier
+            </pre>
+        </li>
+        <li>Non-existent room:
+            <pre>
+Test: Non-existent room 'ROOM_NOT_REAL'
+   - Courses found: 0
+   - Room detected as non-existent
+Success: error correctly thrown for non-existent room
+            </pre>
+        </li>
+    </ul>
+</li>
