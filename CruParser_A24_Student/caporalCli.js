@@ -452,6 +452,167 @@ cli
         });
     })
 
+    .command('freeclasses', 'List of available classrooms')
+    .argument('<day>', 'Day identifier, e.g., L, MA, ME, J, V')
+    .argument('<start>', 'Start time in format HH:MM')
+    .argument('<end>', 'End time in format HH:MM')
+    .action(({ args, logger }) => {
+        const day = args.day;
+        const start = args.start;
+        const end = args.end;
+        const timeRegex = /^\d{2}:\d{2}$/;
+        const startMin = toMin(start);
+        const endMin = toMin(end);
+
+        function toMin(h) {
+            const parts = h.split(":");
+            const H = Number(parts[0]);
+            const M = Number(parts[1]);
+            return H * 60 + M;
+        }
+
+        if (!timeRegex.test(start)) {
+            return logger.error("Invalid start time . Format should be : HH:MM");
+        }
+
+        if (!timeRegex.test(end)) {
+            return logger.error("Invalid end time . Format should be : HH:MM");
+        }
+
+
+        const validDays = ["L", "MA", "ME", "J", "V"];
+        if (!validDays.includes(day)) {
+            return logger.error("Invalid day  . Format should be : 'L' or 'MA' or 'ME' or 'J' or 'V'");
+        }
+        if (start > end) {
+            return logger.error("invalid time range ");
+        }
+        if (startMin < 480 || startMin > 1200) {
+            return logger.error("Invalid start time, should be between 8am and 20pm");
+        }
+        if (endMin < 480 || endMin > 1200) {
+            return logger.error("Invalid end time, should be between 8am and 20pm");
+        }
+        if (endMin - startMin < 60) {
+            return logger.error("Invalid time range, the time slot should be at least one hour long. ");
+        }
+
+
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Read all subfolders
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        const data = fs.readFileSync(filePath, 'utf8');
+                        const parser = new CruParser();
+                        parser.parse(data);
+
+                        allCourses = allCourses.concat(parser.parsedCru);
+
+                    }
+                }
+
+            });
+            const coursesOfDay = allCourses.filter(c => c.jour === day);
+
+            const occupiedClasses = coursesOfDay
+                .filter(c => toMin(c.heureDeb) < endMin && toMin(c.heureFin) > startMin)
+                .map(c => c.salle);
+            const occupiedClassesunique = [...new Set(occupiedClasses)];
+            const allclasses = [...new Set(allCourses.map(c => c.salle))];
+            const freeclasses = allclasses.filter(room => !occupiedClassesunique.includes(room));
+            if (freeclasses.length === 0) {
+                logger.info("no free rooms for this time range.");
+            } else {
+                logger.info("free rooms :");
+                freeclasses.forEach(room => console.log("- " + room));
+            }
+
+        });
+    })
+
+    .command('DisplayCaps', 'display amounts of rooms per capacities')
+    .argument('<day>', 'Day identifier, e.g., L, MA, ME, J, V')
+    .action(({ args, logger }) => {
+
+        const day = args.day;
+
+        const validDays = ["L", "MA", "ME", "J", "V"];
+        if (!validDays.includes(day)) {
+            return logger.error("Invalid day. Format should be : 'L' or 'MA' or 'ME' or 'J' or 'V'");
+        }
+
+        const rootFolder = 'SujetA_data';
+        let allCourses = [];
+
+        // Read all subfolders
+        fs.readdir(rootFolder, { withFileTypes: true }, (err, files) => {
+            if (err) return logger.error(err);
+
+            files.forEach(dirent => {
+                if (dirent.isDirectory()) {
+                    const filePath = path.join(rootFolder, dirent.name, 'edt.cru');
+
+                    if (fs.existsSync(filePath)) {
+                        const data = fs.readFileSync(filePath, 'utf8');
+                        const parser = new CruParser();
+                        parser.parse(data);
+
+                        allCourses = allCourses.concat(parser.parsedCru);
+                    }
+                }
+            });
+            
+            const coursesOfDay = allCourses.filter(c => c.jour === day);
+            let listroomcapfiltered = [];
+            for (let i = 0; i < coursesOfDay.length; i++) {
+
+                const current = coursesOfDay[i];
+                const currentroom = current.salle;
+                const currentcap = current.capacite;
+
+                let roomexist = false;
+
+                for (let j = 0; j < listroomcapfiltered.length; j++) {
+
+                    if (listroomcapfiltered[j].salle === currentroom) {
+
+                        roomexist = true;
+                        if (currentcap > listroomcapfiltered[j].capacite) {
+                            listroomcapfiltered[j].capacite = currentcap;
+                        }
+                        break; 
+                    }
+                }
+                if (!roomexist) {
+                    listroomcapfiltered.push({
+                        salle: currentroom,
+                        capacite: currentcap
+                    });
+                }
+            }
+
+            let capaciteCount = {};
+            for (let i = 0; i < listroomcapfiltered.length; i++) {
+                const cap = listroomcapfiltered[i].capacite;
+
+                if (!capaciteCount[cap]) {
+                    capaciteCount[cap] = 1;   
+                } else {
+                    capaciteCount[cap]++;  
+                }
+            }
+            console.log(JSON.stringify(capaciteCount, null, 2));
+        });
+    })
+
     .command('tauxSalles', 'Gives a graphical representation of classroom occupation rate in a time frame')
     // The specifications declare input as 'BeginningDate' and 'EndingDate', and since our data are .cru files, the following arguments are the ones described by the ABNF of the aforementioned files
     .argument('<firstDay>', 'Starting day of the time period : "L", "MA", "ME", "J", "V"')
@@ -927,6 +1088,8 @@ function generateICalendar(allCourses, requestedCourses, startDate, endDate, out
 
 
 }
+
+
 
 
 cli.run(process.argv.slice(2));
